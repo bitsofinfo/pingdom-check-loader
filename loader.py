@@ -229,11 +229,11 @@ class CheckConfig:
         self.tags = []
         self.tags.append(self.timestamp)
         self.tags.append(self.checkName)
-        self.tags.append(re.sub(r'https*://','',self.baseUrl.replace(".","_")))
+        self.tags.append(re.sub(r'https*://','',self.baseUrl.replace(".","_")).replace("/","_"))
         self.tags.append("priority-{}".format(self.priority))
         for p in self.path.split("/"):
             if p.strip() != '':
-                self.tags.append(p)
+                self.tags.append(p.replace(".","_"))
 
 
     # Applys a new pathPart. By extending any
@@ -642,11 +642,11 @@ def exec(args):
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--checks-config-file', dest='checks_config_file', default="checkconfigs.yaml", \
-        help="Path to a YAML containing the check configs to process")
+        help="Path to a YAML file containing the check configuration declarations to process")
     parser.add_argument('-s', '--sites', dest='sites', default=None, \
         help="Optional comma delimited list of 'sites' to process. Default None (all sites)")
     parser.add_argument('-c', '--check-names', dest='check_names', default=None, \
-        help="Optional comma delimited list of 'checks.[name]' names to process. Default None (all checks)")
+        help="Optional comma delimited list of 'checks.[name]' names to generate checks from. Default None (all checks)")
     parser.add_argument('-u', '--pingdom-api-base-url', dest='pingdom_api_base_url', \
         help="The Pingdom API base URL (inclusive of version)", default="https://api.pingdom.com/api/3.1")
     parser.add_argument('-t', '--pingdom-api-token-file', dest='pingdom_api_token_file', \
@@ -654,9 +654,9 @@ def main():
     parser.add_argument('-d', '--dump-generated-checks', action='store_true', default=False, \
         help="Dumps all generated checks to STDOUT")
     parser.add_argument('-x', '--create-in-pingdom', action='store_true', default=False, \
-        help="Create all checks in Pingdom for the designated --check-names argument")
+        help="CREATE all checks in Pingdom for the designated --check-names argument")
     parser.add_argument('-D', '--delete-in-pingdom', action='store_true', default=False, \
-        help="DELETE all checks in Pingdom who's 'tags' contains any of the check names in the --checks argument")
+        help="DELETE all checks in Pingdom who's 'tags' contains any of the check names in the --check-names argument")
     parser.add_argument('-q', '--delete-tag-qualifiers', dest='delete_tag_qualifiers', default=None, \
         help="Comma delimited list of one or more tags. To be used in conjunction w/ --delete-in-pingdom. " + \
         " Will only delete matching --check-names " + \

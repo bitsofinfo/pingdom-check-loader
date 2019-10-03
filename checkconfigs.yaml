@@ -1,0 +1,148 @@
+
+#----------------------------------------------------
+#
+# THIS IS AN EXAMPLE ONLY
+#
+# You should copy this and create your own
+#
+#----------------------------------------------------
+
+#-------------------------------------------------------------------------
+# defaults: 
+#
+# defines check behavior properties that will applied 
+# to all generated check definitions if not specified
+# elsewhere in 'sites.[site].pathParts' or 'sites.[site].checks' 
+#
+# See: 
+# https://docs.pingdom.com/api/#tag/Resource:-Checks/paths/~1checks/post
+#-------------------------------------------------------------------------
+defaults:
+  intervalMinutes: 5      # resolution
+  timeoutMs: 30000        # responsetime_threshold: Triggers a down alert if the response time exceeds threshold specified in ms 
+  notifyAfterFailures: 2  # sendnotificationwhendown: Send notification when down X times. This seems to be INCLUSIVE of the 1st fail, so in this example its 10 minutes
+  notifyAgainEvery: 30    # notifyagainevery: Notify again every n result. 
+  notifyWhenBackUp: true  # notifywhenbackup
+  regions: ['NA','APAC']  # probe_filters
+  priority: high          # severity_level
+  customMessage: ""       # custom_message
+
+  teamIds:                # teamids to notify. To find these you have to inspect HTML elemements in the GUI.
+    #- XXXXX              
+
+  userIds:                # userids to notify. To find these you have to inspect HTML elemements in the GUI.
+    #- XXXXX   
+    #- XXXXX  
+
+  integrationIds:         # integrationids to fire (i.e. slack etc), To find these you have to inspect HTML elemements in the GUI.
+    #- XXXXX              
+
+
+#-------------------------------------------------------------------------
+# sites: 
+#
+# Here you define one or more sites to check, where a "site" is defined
+# as single base FQDN off of which you wish to have Pingdom check one or 
+# more calculated 'pathParts' which are relative from the rootUrl
+#-------------------------------------------------------------------------
+sites:
+
+  mysite:
+
+    # what we are actually going to check.. paths off this site
+    name: "github.com"
+    rootUrl: https://github.com
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # pathParts 
+    #
+    # These are simply named "lists" of path parts of an URL path 
+    # section relative from the root. The pathPart lists defined
+    # below can be reference by 'checks' defined further below
+    #
+    # Each individual path within a pathPart can override
+    # any of the check properties defined above under 'defaults'
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    pathParts:
+    
+      tags:
+        bitsofinfo/appconduits/tree/1.0.9:
+          regions: [ NA ]
+        bitsofinfo/appconduits/tree/1.0.8:
+          regions: [ EU, APAC ]
+        
+      folders:
+        docs:
+        examples:
+          regions: [ LATAM ] # here we override the probe region for any checks hitting this folder
+        template:
+        repo:
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # checks 
+    #
+    # Checks provides a simple way to express one or more
+    # groups of 'checks' who's directives. when combined with
+    # pathPart reference above, will generate one or more
+    # actual check configs that can be applied against pingdom.
+    #
+    # This can explode into a lot of checks depending on how
+    # you formulate it
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    checks:
+
+      # This check will yield only 1 check for the 1.0.9 path
+      highPriority109Only:
+        forEach:
+          tags:
+            only: [bitsofinfo/appconduits/tree/1.0.9] # 'only' takes an array of pathParts that LIMIT the forEach to only matching names
+            intervalMinutes: 15
+            timeoutMs: 10000    
+            notifyAfterFailures: 4 # ~ will be notified in 3 min after 1st fail  
+            notifyAgainEvery: 30    
+            notifyWhenBackUp: true
+            priority: high  
+            customMessage: "My special message for highPriority109Only"
+            regions:
+              - NA
+              - EU
+              - LATAM
+              - APAC
+
+      # This check will yield 2 actual checks one for each tag
+      # using all the actual check characteristics defined in defaults etc
+      highPriorityAllTags:
+        forEach:
+          tags:
+            customMessage: "Custom message for highPriorityAllTags"
+
+      # This check will yield 4 actual checks one for each tag/folder combo
+      # EXCEPT tree/1.0.8 and below. i.e. only 1.0.9 paths
+      lowPriorityEverythingExcept108:
+        forEach:
+          tags:
+            except: [bitsofinfo/appconduits/tree/1.0.8] # 'only' takes an array of pathParts that LIMIT the forEach to only matching names
+            forEach:
+              folders:
+                priority: low 
+                intervalMinutes: 5
+                timeoutMs: 5000    
+                notifyAfterFailures: 3  
+                notifyAgainEvery: 10 
+                customMessage: "Low priority lowPriorityEverythingExcept108 check"  
+        
+
+      # This check will yield 6 actual checks one for each tag/folder combo
+      lowPriorityEverything:
+        forEach:
+          tags:
+            forEach:
+              folders:
+                priority: low 
+                intervalMinutes: 5
+                timeoutMs: 5000    
+                notifyAfterFailures: 3  
+                notifyAgainEvery: 10 
+                customMessage: "Low priority lowPriorityEverything check"  
+
+  
