@@ -354,9 +354,9 @@ def toPOSTData(check):
         'sendnotificationwhendown': check.notifyAfterFailures,
         'notifyagainevery': check.notifyAgainEvery,
         'responsetime_threshold': check.timeoutMs,
-        'teamids': check.teamIds,
-        'userids': check.userIds,
-        'integrationids': check.integrationIds,
+        'teamids': ",".join(check.teamIds) if check.teamIds and len(check.teamIds) > 0 else None,
+        'userids': ",".join(check.userIds) if check.userIds and len(check.userIds) > 0 else None,
+        'integrationids': ",".join(check.integrationIds) if check.integrationIds and len(check.integrationIds) > 0 else None,
         'notifywhenbackup': check.notifyWhenBackUp,
         'custom_message': check.customMessage,
         'severity_level': check.priority.upper(),
@@ -515,6 +515,7 @@ def deleteChecks(args,timestamp):
         checkIdsToDelete.append(str(check['id']))
 
     # warn the user
+    time.sleep(1) # for docker lag
     proceed = input("\n\nYou are about to DELETE the above checks in Pingdom: do you want to proceed?: (y|n):").strip()
     if proceed.lower() != 'y':
         logging.debug("Exiting, confirmation prompt input was: " + proceed)
@@ -559,6 +560,7 @@ def deleteChecks(args,timestamp):
 #
 def createChecks(args,timestamp,generatedChecks):
 
+    time.sleep(1) # for docker lag
     proceed = input("\n\nYou are about to CREATE the above checks in Pingdom. --dump-generated-checks for more details: do you want to proceed?: (y|n):").strip()
     if proceed.lower() != 'y':
         logging.debug("Exiting, confirmation prompt input was: " + proceed)
