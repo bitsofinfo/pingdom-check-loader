@@ -141,7 +141,7 @@ class ForEachHandler:
                 
 
     # return our 
-    def getCheckConfData(self):
+    def getItems(self):
         return self.pathParts
 
 # Represents a node within a pathPart
