@@ -3,6 +3,9 @@
 *-checks.yaml
 *-readme.md
 
+*.zip
+*.tar.gz
+
 *.ds_store
 
 *.log

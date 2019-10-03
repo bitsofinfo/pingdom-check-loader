@@ -111,6 +111,10 @@ docker run -i -v `pwd`:/configs \
     --pingdom-api-token-file /configs/my.token
 ```
 
+## Pingdom API issues
+
+https://thwack.solarwinds.com/message/426746
+
 ## Usage
 
 ```
