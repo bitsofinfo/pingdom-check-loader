@@ -19,15 +19,20 @@ import yaml
 from multiprocessing import Pool
 from jinja2 import Template, Environment
 
+# Simple encoder for the classes below
 class DumbEncoder(json.JSONEncoder):
     def default(self, o):
         return o.__dict__ 
 
+# For checkDirectives in YAML this class
+# processes the forEach.part.forEach.part 
+# simple expression constructs for the config
+# files this script consumes
 class ForEachHandler:
     def __init__(self, timestamp, defaults, checkName, site, forEach):
 
         self.timestamp = timestamp
-        self.site = site
+        self.site = site 
         self.defaults = defaults
         self.checkName = checkName
 
@@ -45,13 +50,18 @@ class ForEachHandler:
         for checkDirective,directive in forEach[pathPartType].items():
             if checkDirective == 'forEach':
                 self.subParts = ForEachHandler(timestamp,defaults,checkName,site,directive)
+
+            # otherwise just apply the partTypes
+            # properties to our data
             else:
                 if not self.data:
                     self.data = {}
                 self.data.update(forEach[pathPartType])
 
-         
-    def getCheckConf(self,path):
+    # Populates a dict of configurable check properties
+    # in a descending order from defaults, the path metadata
+    # and finally down to this forEach's lowest level declaration
+    def getCheckConfData(self,path):
         checkConf = {}
         if self.defaults: 
             checkConf.update(self.defaults)
@@ -62,6 +72,8 @@ class ForEachHandler:
 
         return checkConf
     
+    # Handles except/only syntax enforcment within
+    # forEach stanzas
     def pathPartIsPermitted(self,pathPartName):
         if self.data and 'except' in self.data:
             if pathPartName in self.data['except']:
@@ -71,13 +83,24 @@ class ForEachHandler:
                 return False
         return True
     
+    # handles the limit syntax enforcement
+    # defined within forEach stanzas
     def enforceLimit(self,items):
         if self.data and 'limit' in self.data:
             return items[:self.data['limit']]
         return items
 
+    # Give a list of pre-existing CheckConfig objects
+    # this traverses the ForEach logic by creating new
+    # CheckConfigs when necessary or mutating existing ones
+    # from higher level pathParts by extending their paths
     def build(self,checks):
 
+        # if checks is not None we iterate over each one
+        # and use it as a seed/template to explode out 
+        # additional ones for our own pathParts that need
+        # to be appended to the pre-existing path in each one
+        # this covers the nested ForEach scenario
         if checks:
             newChecks = []
             for c in checks:
@@ -96,6 +119,9 @@ class ForEachHandler:
 
             checks = newChecks
 
+        # If checks is None, then we are the top level forEach
+        # lets go through our pathParts and create the initial set of
+        # CheckConfig objects
         else:
             checks = []
             for p in self.enforceLimit(self.pathParts.getPathNames()):
@@ -103,19 +129,31 @@ class ForEachHandler:
                     path = self.pathParts.getPath(p)
 
                     c = CheckConfig(self.timestamp, self.defaults, self.checkName, \
-                        self.site, self.getCheckConf(path), path)
+                        self.site, self.getCheckConfData(path), path)
                     checks.append(c)
 
         
+        # if we have subParts? let recurse, pass in the checks
         if self.subParts: 
             checks = self.subParts.build(checks)
 
         return checks
                 
 
-    def getItems(self):
+    # return our 
+    def getCheckConfData(self):
         return self.pathParts
 
+# Represents a node within a pathPart
+# i.e.
+#
+# pathParts
+#   <type>:
+#       <pathPart (THIS)>:
+#           name: xxx
+#           data:
+#               whatever..
+#
 class PathPart:
     def __init__(self, pathName, metadata):
         self.name = pathName 
@@ -124,7 +162,16 @@ class PathPart:
     def getMetadata(self,prop):
         return self.metadata[prop]
 
-
+# Represents pathParts typet
+# i.e.
+#
+# pathParts
+#   <type (THIS)>:
+#       <pathPart>:
+#           name: xxx
+#           data:
+#               whatever..
+#
 class PathParts:
 
     types = {}
@@ -146,6 +193,8 @@ class PathParts:
     def getPath(self,pathName):
         return self.paths[pathName]
 
+# A complete CheckConfig that defines an individual "check" that will
+# need to be created in Pingdom
 class CheckConfig:
     def __init__(self, timestamp, defaults, checkName, site, data, pathPart):
         self.timestamp = timestamp
@@ -162,6 +211,7 @@ class CheckConfig:
         self.userIds =  data['userIds']
         self.integrationIds = data['integrationIds']
         self.priority = data['priority']
+        self.customMessage = data['customMessage']
         self.tags = []
 
         self.applyPathPart(pathPart)
@@ -171,6 +221,8 @@ class CheckConfig:
 
         self.update(None)
 
+    # Merges the passed data with this CheckConfig's
+    # internal data. Overriding things. Also rebuilds tags
     def update(self,data):
 
         if data:
@@ -186,6 +238,9 @@ class CheckConfig:
                 self.tags.append(p)
 
 
+    # Applys a new pathPart. By extending any
+    # pre-existing path, and appending the new part
+    # as an additional tag
     def applyPathPart(self,pathPart):
         if not self.path:
             self.path = ""
@@ -202,12 +257,16 @@ class CheckConfig:
         .format(self.regions,self.baseUrl,self.path,self.intervalMinutes,self.timeoutMs,self.notifyAfterFailures,self.priority,self.userIds,self.teamIds,self.integrationIds,self.notifyAgainEvery,self.notifyWhenBackUp,self.tags)
 
 
+# Generates a list of CheckConfig objects appropriate given
+# the cli arguments. This does NOT make ANY API calls to Pingdom
+#
 def generateChecks(args,timestamp):
 
     logging.debug("generateChecks() initiating run w/ id: {}".format(timestamp))
 
     config = None
 
+    # load our conf file
     with open(args.checks_config_file, 'r') as stream:
         try:
             # load our check configs yaml data
@@ -280,6 +339,11 @@ def generateChecks(args,timestamp):
                     
     return generatedChecks
 
+
+# Converts a CheckConfig object into 
+# a Pingdom "create check" POST appropriate object. 
+# https://docs.pingdom.com/api/#tag/Resource:-Checks
+#
 def toPOSTData(check):
 
     data = { 
@@ -296,6 +360,8 @@ def toPOSTData(check):
         'userids': check.userIds,
         'integrationids': check.integrationIds,
         'notifywhenbackup': check.notifyWhenBackUp,
+        'custom_message': check.customMessage,
+        'severity_level': check.priority.upper(),
         'probe_filters': [],
         'tags':[]
     }
@@ -306,11 +372,12 @@ def toPOSTData(check):
     data['probe_filters'] = ",".join(data['probe_filters'])
     data['tags'] = ",".join(check.tags)
 
-
-
     return data
 
 
+#
+# Loads the api token from a token file
+#
 def getApiToken(args):
     
     try:
@@ -320,7 +387,18 @@ def getApiToken(args):
         logging.exception("getApiToken() Error loading token [{}] = {}".format(args.pingdom_api_token_file,str(sys.exc_info()[:2])))
         raise e
 
-
+#
+# Fetches a list of pingdom API check objects from
+# pingdom. It qualifies the initial API search request 
+# using all passed checkNames and tagQualifiers which
+# pingdom treats as a logical OR (ANY) match
+#
+# IMPORTANT: after the initial set is returned from
+# pingdom the 'tagQualifiers' are then applied to the
+# return set to filter it using an (AND) behavior
+# where ALL tagQualifiers must match in order for the
+# check to be returned
+#
 def getChecks(args,checkNames,tagQualifiers):
 
     toReturn = []
@@ -399,7 +477,11 @@ def getChecks(args,checkNames,tagQualifiers):
             .format(str(sys.exc_info()[:2])))
         raise e
 
-
+#
+# Loads all qualifying checks from pingdom given
+# --check-names and/or --delete-tag-qualifiers and
+# prompts, then deletes them by check id
+#
 def deleteChecks(args,timestamp):
 
     checkIdsToDelete = []
@@ -443,6 +525,7 @@ def deleteChecks(args,timestamp):
     # ok lets do the actual delete
     try:
         url = "{}/checks".format(args.pingdom_api_base_url)
+        
         querystring = {"delcheckids":",".join(checkIdsToDelete)}
 
         headers = {
@@ -471,7 +554,11 @@ def deleteChecks(args,timestamp):
     
 
 
-
+#
+# Consumes the YAML config, generates a set of 
+# checks to be sent to pingdom. Prompts then 
+# creates the checks in pingdome using the API
+#
 def createChecks(args,timestamp,generatedChecks):
 
     proceed = input("\n\nYou are about to CREATE the above checks in Pingdom. --dump-generated-checks for more details: do you want to proceed?: (y|n):").strip()
@@ -519,6 +606,9 @@ def createChecks(args,timestamp,generatedChecks):
     logging.debug("createChecks() completed, {} checks created, {} failed at Pingdom w/ tag: {}".format(created,failed,timestamp))
 
 
+#
+# Primary logic entrypoint
+#
 def exec(args):
 
     # the timestamp
@@ -546,6 +636,9 @@ def exec(args):
         logging.debug("Finished: run identifier: {}".format(timestamp))
         
 
+###########################
+# Main program
+##########################
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--checks-config-file', dest='checks_config_file', default="checkconfigs.yaml", \
@@ -572,11 +665,8 @@ def main():
         help="log level, DEBUG, INFO, etc")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, \
         help="Path to log file; default None = STDOUT")
-    
-
 
     args = parser.parse_args()
-
 
     dump_help = False
    
@@ -592,8 +682,6 @@ def main():
     exec(args)
 
 
-###########################
-# Main program
-##########################
+
 if __name__ == '__main__':
     main()
