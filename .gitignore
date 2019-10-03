@@ -1,6 +1,7 @@
 
 *.token
 *-checks.yaml
+*-readme.md
 
 *.ds_store
 
