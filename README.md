@@ -28,7 +28,7 @@ See the sample [checkconfigs.yaml](checkconfigs.yaml) for more docs and details 
 
 Before even using this, you need an account at Pingdom (paid or free trial) and have your account configured w/ an read-write API token as stated above.
 
-Once that is setup, the functionaly is basically as follows:
+Once that is setup, the functionality is basically as follows:
 
 * `loader.py` consumes your arguments and reads the `--checks-config-file`
   
