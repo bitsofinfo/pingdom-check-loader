@@ -16,8 +16,6 @@ import pprint
 import argparse
 import sys
 import yaml
-from multiprocessing import Pool
-from jinja2 import Template, Environment
 
 # Simple encoder for the classes below
 class DumbEncoder(json.JSONEncoder):
