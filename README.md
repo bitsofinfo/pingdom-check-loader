@@ -13,6 +13,7 @@ defined checks. Checks changes are additive in nature. You can generate and prod
 
 The checks generated and created by this utility are intended to be immutable; generated checks are tagged appropriately to be easy to find via Pingdom's GUI and APIs. Tags are automatically created based on a CLI invocation `timestamp` and `pathParts` (see YAML) so that all generated checks can be managed as a single set. You can then use these tags to delete checks (via this CLI) which can then be replaced by newer generated iterations of them as your requirements change. You can do things in any order you desire; for example create one version of checks, then interate and generate the 2nd iteration; after your 2nd iteration is functioning as desired you can cleanup the 1st iteration using the `--delete-tag-qualifers` flag passing the 1st iterations `timestamp` identifier.
 
+[Background info here](https://bitsofinfo.wordpress.com/2020/08/25/immutable-health-check-monitor-pingdom/)
 
 ## Requirements, install, setup
 
