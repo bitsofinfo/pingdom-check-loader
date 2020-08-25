@@ -5,6 +5,9 @@
 #
 # You should copy this and create your own
 #
+# BE AWARE OF PINGDOM GUI/API differences:
+# https://thwack.solarwinds.com/t5/Pingdom-Discussions/Pingdom-2-1-and-3-1-apis-don-t-work-as-documented/m-p/326939/highlight/true#M23
+#
 #----------------------------------------------------
 
 #-------------------------------------------------------------------------
