@@ -1,5 +1,7 @@
 # pingdom-check-loader
 
+[![Docker build](https://img.shields.io/docker/automated/bitsofinfo/pingdom-check-loader)](https://hub.docker.com/repository/docker/bitsofinfo/pingdom-check-loader)
+
 This provides a simple CLI utility for managing "checks" in [Pingdom](https://pingdom.com) using the [3.1 API](https://docs.pingdom.com/api/)
 
 ![diag](/docs/pingdom3.jpg "Diagram1")
