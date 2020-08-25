@@ -44,9 +44,15 @@ Once that is setup, the functionality is basically as follows:
 
 ## Some examples
 
-*You need to provide a api token file below some of the examples to work.*
+Setup a python virtual env:
+```bash
+cd pingdom-check-loader
+python3 -m venv venv
+source venv/bin/activate
+pip install --requirement requirements.txt
+```
 
-Lets just see what would be generated for this [checkconfigs.yaml](checkconfigs.yaml) example: (you should get 15 checks)
+Lets just see what would be generated for this [checkconfigs.yaml](checkconfigs.yaml) example: (you should get 17 checks)
 ```bash
  ./loader.py     \
     --checks-config-file checkconfigs.yaml     \
@@ -69,7 +75,15 @@ Ok, but lets generate multiple checks: (you should get 3 checks)
     --dump-generated-checks 
 ```
 
-Ok great, lets publish all these to Pingdom: (3 checks)
+How about we generate multiple the `highPriorityExamplesDirs` checks: (you should get 2 checks)
+```bash
+ ./loader.py     \
+    --checks-config-file checkconfigs.yaml     \
+    --check-names highPriorityExamplesDirs \
+    --dump-generated-checks 
+```
+
+Ok great, lets publish all these to Pingdom: (3 checks). Important: for this part of the example to work *you need to provide a api token file below in a file named trial.token*
 ```bash
  ./loader.py     \
     --checks-config-file checkconfigs.yaml     \
@@ -86,7 +100,7 @@ After they are created you will notice something like this in the logs:
 ...
 ```
 
-We can then use that identifier to cleanup the entire set of checks we just generated and created:
+We can then use that identifier to cleanup the entire set of checks we just generated and created. *Note you need to use the `identifier` output form your example run, the below is a sample...*
 ```bash
  ./loader.py     \
     --checks-config-file checkconfigs.yaml     \
@@ -101,9 +115,19 @@ In addition the above examples there are other combinations of arguments you can
 
 Running via Docker is not much different than the command line directly, with the exception of you are using `docker run` in interactive mode. Below is simply a basic example.
 
+
+Generate and dump only:
 ```bash
 docker run -i -v `pwd`:/configs \
-    bitsofinfo/pingdom-check-loader:[version] loader.py \
+    bitsofinfo/pingdom-check-loader:latest loader.py \
+    --checks-config-file /configs/checkconfigs.yaml     \
+    --dump-generated-checks     
+```
+
+Generate and publish:
+```bash
+docker run -i -v `pwd`:/configs \
+    bitsofinfo/pingdom-check-loader:latest loader.py \
     --checks-config-file /configs/checkconfigs.yaml     \
     --dump-generated-checks     \
     --check-names test1     \
